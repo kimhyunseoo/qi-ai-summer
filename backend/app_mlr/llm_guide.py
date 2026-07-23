@@ -41,7 +41,6 @@ def generate_usage_guide(
     peak_kwh: float,
     low_h: int,
     low_m: int,
-    weather_desc: str,
 ) -> str:
     if _client is None:
         return _template_guide(peak_h, peak_m, low_h, low_m)
@@ -50,8 +49,7 @@ def generate_usage_guide(
         f"Here is the solar generation forecast for {target_date}:\n"
         f"- Total generation: {total_kwh}kWh ({vs_avg_pct:+.1f}% vs average)\n"
         f"- Peak time: {peak_h:02d}:{peak_m:02d} (about {peak_kwh:.1f}kWh)\n"
-        f"- Lowest time: {low_h:02d}:{low_m:02d}\n"
-        f"- Weather: {weather_desc}\n\n"
+        f"- Lowest time: {low_h:02d}:{low_m:02d}\n\n"
         "Based on this, write a 2-paragraph power usage guide in English for a "
         "residential solar user, in a friendly and helpful tone. Give specific "
         "recommendations on when to run high-load appliances like washing machines, "

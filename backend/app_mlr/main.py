@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app_mlr.feature_engineering import TARGET_SLOTS, InsufficientHistoryError, build_feature_rows, load_history
 from app_mlr.llm_guide import generate_usage_guide
 from app_mlr.mock_model import predict
-from app_mlr.schemas import ForecastResponse, HealthResponse, SlotForecast, Weather
+from app_mlr.schemas import ForecastResponse, HealthResponse, SlotForecast
 
 MODEL_NAME = "Dacon-MLR-v1 (7-day lag / 30-min)"
 FACILITY_NAME = "Dangjin Residential Plant"
@@ -55,9 +55,6 @@ def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/testìš
     peak_h, peak_m = TARGET_SLOTS[peak_idx]
     low_h, low_m = TARGET_SLOTS[low_idx]
 
-    # Display-only. The model itself does NOT take weather forecast as input.
-    weather = Weather(description="Mostly Sunny", cloud_cover_pct=15.0, temperature_c=31.0)
-
     usage_guide = generate_usage_guide(
         target_date=target_date.strftime("%Y-%m-%d"),
         total_kwh=total,
@@ -67,7 +64,6 @@ def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/testìš
         peak_kwh=values[peak_idx],
         low_h=low_h,
         low_m=low_m,
-        weather_desc=weather.description,
     )
 
     return ForecastResponse(
@@ -84,6 +80,5 @@ def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/testìš
         lowest_hour=low_h,
         lowest_minute=low_m,
         lowest_generation_kwh=values[low_idx],
-        weather=weather,
         usage_guide=usage_guide,
     )

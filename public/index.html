@@ -81,8 +81,8 @@
     border-radius: 50%; background: radial-gradient(circle, #f6c453, #f6c45300 70%);
   }
 
-  /* card row (4 across) */
-  .card-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  /* card row (3 across) */
+  .card-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
   .stat-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   .stat-card .icon {
     width: 34px; height: 34px; border-radius: 8px; background: #eef4fb;
@@ -95,9 +95,17 @@
   .delta.up { color: #16a34a; } .delta.down { color: #dc2626; }
   .stat-card .sub { font-size: 12px; color: #6b7280; margin-top: 4px; }
 
-  .chart-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
+  .chart-card { position: relative; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 20px; }
   .chart-card h3 { margin: 0 0 14px; font-size: 15px; }
   svg#chart { width: 100%; height: 260px; overflow: visible; }
+  .chart-hover-target { fill: transparent; cursor: crosshair; }
+  #chartTooltip {
+    position: absolute; display: none; pointer-events: none;
+    background: #16478c; color: #fff; padding: 6px 10px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; white-space: nowrap; z-index: 10;
+    transform: translate(-50%, -110%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
 
   .guide {
     background: linear-gradient(120deg, #1a7a4c, #16478c);
@@ -165,17 +173,12 @@
         <div class="value" id="lowTime">-</div>
         <div class="sub" id="lowVal">-</div>
       </div>
-      <div class="stat-card">
-        <div class="icon" style="background:#e8f9ee;">🌤️</div>
-        <div class="label">Weather</div>
-        <div class="value" id="weatherDesc" style="font-size:18px;">-</div>
-        <div class="sub" id="weatherDetail">-</div>
-      </div>
     </div>
 
     <div class="chart-card">
       <h3>Hourly Forecast (05:00 – 19:30, 30분 단위)</h3>
       <svg id="chart" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
+      <div id="chartTooltip"></div>
     </div>
 
     <div class="guide">
@@ -203,6 +206,8 @@ function doLogout() {
 
 function drawChart(slots) {
   const svg = document.getElementById('chart');
+  const tooltip = document.getElementById('chartTooltip');
+  const chartCard = svg.closest('.chart-card');
   const w = 1000, h = 260, padL = 30, padR = 10, padT = 20, padB = 24;
   const maxVal = Math.max(...slots.map(s => s.generation_kwh), 1);
   const stepX = (w - padL - padR) / (slots.length - 1);
@@ -220,18 +225,20 @@ function drawChart(slots) {
 
   let dots = '';
   let labels = '';
+  let hoverTargets = '';
   points.forEach((p, i) => {
     const isHour = slots[i].minute === 0;
     const isPeak = i === peakIdx;
     if (isHour || isPeak) {
-      dots += `<circle cx="${p[0]}" cy="${p[1]}" r="${isPeak ? 4.5 : 3}" fill="${isPeak ? '#16a34a' : '#16478c'}" stroke="#fff" stroke-width="1.5"></circle>`;
+      dots += `<circle cx="${p[0]}" cy="${p[1]}" r="${isPeak ? 4.5 : 3}" fill="${isPeak ? '#16a34a' : '#16478c'}" stroke="#fff" stroke-width="1.5" style="pointer-events:none;"></circle>`;
     }
     if (isPeak) {
-      labels += `<text x="${p[0]}" y="${p[1]-10}" font-size="12" font-weight="700" fill="#16478c" text-anchor="middle">${slots[i].generation_kwh.toFixed(1)}</text>`;
+      labels += `<text x="${p[0]}" y="${p[1]-10}" font-size="12" font-weight="700" fill="#16478c" text-anchor="middle" style="pointer-events:none;">${slots[i].generation_kwh.toFixed(1)}</text>`;
     }
     if (isHour) {
-      labels += `<text x="${p[0]}" y="${h-4}" font-size="10" fill="#9ca3af" text-anchor="middle">${slots[i].hour}</text>`;
+      labels += `<text x="${p[0]}" y="${h-4}" font-size="10" fill="#9ca3af" text-anchor="middle" style="pointer-events:none;">${slots[i].hour}</text>`;
     }
+    hoverTargets += `<rect class="chart-hover-target" data-idx="${i}" x="${(p[0]-stepX/2).toFixed(1)}" y="0" width="${stepX.toFixed(1)}" height="${h}"></rect>`;
   });
 
   svg.innerHTML = `
@@ -239,7 +246,26 @@ function drawChart(slots) {
     <path d="${linePath}" fill="none" stroke="#16478c" stroke-width="2.5"></path>
     ${dots}
     ${labels}
+    ${hoverTargets}
   `;
+
+  svg.querySelectorAll('.chart-hover-target').forEach((el, i) => {
+    el.addEventListener('mouseenter', () => {
+      const s = slots[i];
+      const p = points[i];
+      tooltip.textContent = `${String(s.hour).padStart(2,'0')}:${String(s.minute).padStart(2,'0')} · ${s.generation_kwh.toFixed(2)} kWh`;
+      tooltip.style.display = 'block';
+      const svgRect = svg.getBoundingClientRect();
+      const cardRect = chartCard.getBoundingClientRect();
+      const scaleX = svgRect.width / w;
+      const scaleY = svgRect.height / h;
+      tooltip.style.left = ((svgRect.left - cardRect.left) + p[0] * scaleX) + 'px';
+      tooltip.style.top = ((svgRect.top - cardRect.top) + p[1] * scaleY) + 'px';
+    });
+    el.addEventListener('mouseleave', () => {
+      tooltip.style.display = 'none';
+    });
+  });
 }
 
 async function loadForecast() {
@@ -266,8 +292,6 @@ async function loadForecast() {
     document.getElementById('peakVal').textContent = `Est. ${d.peak_generation_kwh} kWh`;
     document.getElementById('lowTime').textContent = `${String(d.lowest_hour).padStart(2,'0')}:${String(d.lowest_minute).padStart(2,'0')}`;
     document.getElementById('lowVal').textContent = `Est. ${d.lowest_generation_kwh} kWh`;
-    document.getElementById('weatherDesc').textContent = d.weather.description;
-    document.getElementById('weatherDetail').textContent = `${d.weather.cloud_cover_pct}% cloud · ${d.weather.temperature_c}°C`;
     document.getElementById('usageGuide').textContent = d.usage_guide;
 
     drawChart(d.slots);

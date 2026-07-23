@@ -7,15 +7,6 @@ class SlotForecast(BaseModel):
     generation_kwh: float
 
 
-class Weather(BaseModel):
-    """Display-only. NOT fed into the model -- the model only uses the
-    past 7 days' actual DHI/DNI/WS/RH/T/TARGET, no forecast input."""
-
-    description: str
-    cloud_cover_pct: float
-    temperature_c: float
-
-
 class ForecastResponse(BaseModel):
     facility_name: str
     location: str
@@ -35,7 +26,6 @@ class ForecastResponse(BaseModel):
     lowest_minute: int
     lowest_generation_kwh: float
 
-    weather: Weather
     usage_guide: str
 
 
