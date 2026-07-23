@@ -32,26 +32,37 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok", model_loaded=True, model_name=MODEL_NAME)
 
 
+def _predict_day(history, target_date: dt.date) -> list[float]:
+    X = build_feature_rows(history, target_date)
+    return predict(X)
+
+
 @app.get("/api/forecast", response_model=ForecastResponse)
 def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/test용. 안 주면 오늘 날짜")) -> ForecastResponse:
     target_date = dt.date.fromisoformat(date) if date else dt.date.today()
+    history = load_history(str(HISTORY_CSV_PATH))
 
     try:
-        history = load_history(str(HISTORY_CSV_PATH))
-        X = build_feature_rows(history, target_date)
+        values = _predict_day(history, target_date)
     except InsufficientHistoryError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
-
-    values = predict(X)
 
     slots = [SlotForecast(hour=h, minute=m, generation_kwh=v) for (h, m), v in zip(TARGET_SLOTS, values)]
 
     total = round(sum(values) * 0.5, 1)  # 30-min slots -> kWh = sum(kW) * 0.5h
-    avg_baseline_kwh = 430.8  # train 세트 일평균 총발전량(kWh) 실측 기준
-    vs_avg_pct = round((total - avg_baseline_kwh) / avg_baseline_kwh * 100, 1)
+
+    # vs 전날 (같은 모델로 어제도 예측해서 비교; 어제치 history가 없으면 비교 생략)
+    try:
+        yesterday_values = _predict_day(history, target_date - dt.timedelta(days=1))
+        yesterday_total = sum(yesterday_values) * 0.5
+        vs_avg_pct = round((total - yesterday_total) / yesterday_total * 100, 1) if yesterday_total > 0 else 0.0
+    except InsufficientHistoryError:
+        vs_avg_pct = 0.0
 
     peak_idx = max(range(len(values)), key=lambda i: values[i])
-    low_idx = min(range(len(values)), key=lambda i: values[i])
+    # 0보다 큰 슬롯 중 최소값 (없으면 그냥 전체 최소값으로 대체)
+    positive_idxs = [i for i, v in enumerate(values) if v > 0]
+    low_idx = min(positive_idxs, key=lambda i: values[i]) if positive_idxs else min(range(len(values)), key=lambda i: values[i])
     peak_h, peak_m = TARGET_SLOTS[peak_idx]
     low_h, low_m = TARGET_SLOTS[low_idx]
 

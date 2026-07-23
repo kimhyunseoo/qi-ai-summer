@@ -286,7 +286,7 @@ async function loadForecast() {
     document.getElementById('heroSub').textContent = `${d.target_date} · ${d.location} · Model: ${d.model_name}`;
     document.getElementById('totalKwh').innerHTML = `${d.total_generation_kwh} <span class="unit">kWh</span>`;
     const vsAvg = document.getElementById('vsAvg');
-    vsAvg.textContent = `${d.vs_avg_pct >= 0 ? '▲' : '▼'} ${Math.abs(d.vs_avg_pct)}% vs avg`;
+    vsAvg.textContent = `${d.vs_avg_pct >= 0 ? '▲' : '▼'} ${Math.abs(d.vs_avg_pct)}% vs yesterday`;
     vsAvg.className = 'delta ' + (d.vs_avg_pct >= 0 ? 'up' : 'down');
     document.getElementById('peakTime').textContent = `${String(d.peak_hour).padStart(2,'0')}:${String(d.peak_minute).padStart(2,'0')}`;
     document.getElementById('peakVal').textContent = `Est. ${d.peak_generation_kwh} kWh`;

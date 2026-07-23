@@ -47,7 +47,7 @@ def generate_usage_guide(
 
     prompt = (
         f"Here is the solar generation forecast for {target_date}:\n"
-        f"- Total generation: {total_kwh}kWh ({vs_avg_pct:+.1f}% vs average)\n"
+        f"- Total generation: {total_kwh}kWh ({vs_avg_pct:+.1f}% vs yesterday)\n"
         f"- Peak time: {peak_h:02d}:{peak_m:02d} (about {peak_kwh:.1f}kWh)\n"
         f"- Lowest time: {low_h:02d}:{low_m:02d}\n\n"
         "Based on this, write a 2-paragraph power usage guide in English for a "
