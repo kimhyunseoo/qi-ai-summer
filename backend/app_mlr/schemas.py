@@ -9,7 +9,6 @@ class SlotForecast(BaseModel):
 
 class ForecastResponse(BaseModel):
     facility_name: str
-    location: str
     target_date: str  # YYYY-MM-DD
     model_name: str
 

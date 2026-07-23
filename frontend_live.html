@@ -123,11 +123,11 @@
     <div class="logo-row"><div class="logo"></div><h1>Solarix</h1></div>
     <div class="tagline">Personalized solar forecast &amp; usage guidance</div>
     <label>Email</label>
-    <input type="text" id="loginEmail" placeholder="user@dangjin-solar.kr">
+    <input type="text" id="loginEmail" placeholder="user@solarix.app">
     <label>Password</label>
     <input type="password" id="loginPw" placeholder="••••••••">
     <button onclick="doLogin()">Log in</button>
-    <div class="footnote">Prototype build · MLR model (7-day lag) · Single test user</div>
+    <div class="footnote">Prototype build · RF model (7-day lag) · Single test user</div>
   </div>
 </div>
 
@@ -136,7 +136,7 @@
   <header>
     <div class="brand"><div class="logo"></div>Solarix</div>
     <div class="right">
-      <div class="sub" id="facilityLabel">Dangjin Residential Plant · User 1</div>
+      <div class="sub" id="facilityLabel">Residential Solar Plant · User 1</div>
       <div class="avatar">DJ</div>
       <button class="logout-btn" onclick="doLogout()">Log out</button>
     </div>
@@ -146,10 +146,10 @@
     <div class="hero">
       <div class="sun"></div>
       <h1>Today's Solar Forecast</h1>
-      <p id="heroSub">불러오는 중...</p>
+      <p id="heroSub">Loading...</p>
       <div class="date-picker">
         <input type="date" id="dateInput" value="2025-01-30">
-        <button class="go" onclick="loadForecast()">예측 조회</button>
+        <button class="go" onclick="loadForecast()">Get Forecast</button>
       </div>
       <div class="status" id="statusMsg"></div>
     </div>
@@ -176,7 +176,7 @@
     </div>
 
     <div class="chart-card">
-      <h3>Hourly Forecast (05:00 – 19:30, 30분 단위)</h3>
+      <h3>Hourly Forecast (05:00 – 19:30, 30-min intervals)</h3>
       <svg id="chart" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
       <div id="chartTooltip"></div>
     </div>
@@ -268,8 +268,7 @@ function drawChart(slots) {
 async function loadForecast() {
   const date = document.getElementById('dateInput').value;
   const statusEl = document.getElementById('statusMsg');
-  statusEl.textContent = '불러오는 중...';
-  statusEl.innerHTML = '불러오는 중...';
+  statusEl.textContent = 'Loading...';
 
   try {
     const res = await fetch(`${API_BASE}/api/forecast?date=${date}`);
@@ -280,7 +279,7 @@ async function loadForecast() {
     const d = await res.json();
 
     document.getElementById('facilityLabel').textContent = `${d.facility_name} · User 1`;
-    document.getElementById('heroSub').textContent = `${d.target_date} · ${d.location} · Model: ${d.model_name}`;
+    document.getElementById('heroSub').textContent = `${d.target_date} · Model: ${d.model_name}`;
     document.getElementById('totalKwh').innerHTML = `${d.total_generation_kwh} <span class="unit">kWh</span>`;
     const vsAvg = document.getElementById('vsAvg');
     vsAvg.textContent = `${d.vs_avg_pct >= 0 ? '▲' : '▼'} ${Math.abs(d.vs_avg_pct)}% vs yesterday`;
@@ -292,9 +291,9 @@ async function loadForecast() {
     document.getElementById('usageGuide').textContent = d.usage_guide;
 
     drawChart(d.slots);
-    statusEl.textContent = `불러옴 (${d.slots.length}개 슬롯, 30분 단위)`;
+    statusEl.textContent = `Loaded (${d.slots.length} slots, 30-min intervals)`;
   } catch (e) {
-    statusEl.innerHTML = `<div class="error">에러: ${e.message} (백엔드 서버 확인: uvicorn app_mlr.main:app --port 8001)</div>`;
+    statusEl.innerHTML = `<div class="error">Error: ${e.message} (check backend server: uvicorn app_mlr.main:app --port 8001)</div>`;
   }
 }
 </script>

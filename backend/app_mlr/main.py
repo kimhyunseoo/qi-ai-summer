@@ -12,8 +12,7 @@ from app_mlr.mock_model import predict
 from app_mlr.schemas import ForecastResponse, HealthResponse, SlotForecast
 
 MODEL_NAME = "Dacon-RF-v1 (7-day lag / 30-min)"
-FACILITY_NAME = "Dangjin Residential Plant"
-LOCATION = "Dangjin, South Chungcheong"
+FACILITY_NAME = "Residential Solar Plant"
 
 HISTORY_CSV_PATH = Path(__file__).parent / "data" / "recent_data.csv"
 
@@ -79,7 +78,6 @@ def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/testìš
 
     return ForecastResponse(
         facility_name=FACILITY_NAME,
-        location=LOCATION,
         target_date=target_date.strftime("%Y-%m-%d"),
         model_name=MODEL_NAME,
         slots=slots,
