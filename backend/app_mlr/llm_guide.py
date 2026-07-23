@@ -24,11 +24,9 @@ if _API_KEY:
 
 def _template_guide(peak_h: int, peak_m: int, low_h: int, low_m: int) -> str:
     return (
-        f"Today's generation is expected to peak around {peak_h:02d}:{peak_m:02d}. "
-        "High-load appliances such as washing machines, dryers, or electric vehicle charging "
-        "are recommended during this window to make the most of surplus generation.\n\n"
-        f"Generation is expected to be minimal around {low_h:02d}:{low_m:02d}. "
-        "Please plan energy-intensive tasks earlier in the day."
+        f"- Peak generation around {peak_h:02d}:{peak_m:02d} -- best window for washing machines, dryers, or EV charging\n"
+        f"- Lowest generation around {low_h:02d}:{low_m:02d} -- avoid heavy appliance use here\n"
+        "- Shift energy-intensive tasks earlier in the day when possible"
     )
 
 
@@ -50,18 +48,19 @@ def generate_usage_guide(
         f"- Total generation: {total_kwh}kWh ({vs_avg_pct:+.1f}% vs yesterday)\n"
         f"- Peak time: {peak_h:02d}:{peak_m:02d} (about {peak_kwh:.1f}kWh)\n"
         f"- Lowest time: {low_h:02d}:{low_m:02d}\n\n"
-        "Based on this, write a 2-paragraph power usage guide in English for a "
-        "residential solar user, in a friendly and helpful tone. Give specific "
-        "recommendations on when to run high-load appliances like washing machines, "
-        "dryers, or EV charging."
+        "Based on this, write a short power usage guide in English for a residential "
+        "solar user as 3-4 concise bullet points (each starting with \"- \"). No intro "
+        "or closing sentence, no headers -- just the bullets. Be specific and direct "
+        "(exact times, exact recommendation), not filler. Cover: when to run high-load "
+        "appliances (washing machine, dryer, EV charging), and when to avoid them."
     )
 
     try:
         resp = _client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            max_tokens=300,
+            temperature=0.6,
+            max_tokens=180,
         )
         return resp.choices[0].message.content.strip()
     except Exception:
