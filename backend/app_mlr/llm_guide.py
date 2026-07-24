@@ -22,9 +22,17 @@ if _API_KEY:
     _client = OpenAI(api_key=_API_KEY)
 
 
+def _peak_window(peak_h: int, peak_m: int) -> tuple[str, str]:
+    """Peak time +/- 1 hour, clamped to the 05:00-19:30 forecast window."""
+    start_h = max(5, peak_h - 1)
+    end_h = min(19, peak_h + 1)
+    return f"{start_h:02d}:{peak_m:02d}", f"{end_h:02d}:{peak_m:02d}"
+
+
 def _template_guide(peak_h: int, peak_m: int, low_h: int, low_m: int) -> str:
+    start, end = _peak_window(peak_h, peak_m)
     return (
-        f"- Peak generation around {peak_h:02d}:{peak_m:02d} -- best window for washing machines, dryers, or EV charging\n"
+        f"- Peak generation window {start}-{end} -- best window for washing machines, dryers, or EV charging\n"
         f"- Lowest generation around {low_h:02d}:{low_m:02d} -- avoid heavy appliance use here\n"
         "- Shift energy-intensive tasks earlier in the day when possible"
     )
@@ -43,10 +51,11 @@ def generate_usage_guide(
     if _client is None:
         return _template_guide(peak_h, peak_m, low_h, low_m)
 
+    peak_start, peak_end = _peak_window(peak_h, peak_m)
     prompt = (
         f"Here is the solar generation forecast for {target_date}:\n"
         f"- Total generation: {total_kwh}kWh ({vs_avg_pct:+.1f}% vs yesterday)\n"
-        f"- Peak time: {peak_h:02d}:{peak_m:02d} (about {peak_kwh:.1f}kWh)\n"
+        f"- Peak window: {peak_start}-{peak_end} (peak ~{peak_kwh:.1f}kWh around {peak_h:02d}:{peak_m:02d})\n"
         f"- Lowest time: {low_h:02d}:{low_m:02d}\n\n"
         "Based on this, write a short power usage guide in English for a residential "
         "solar user as 3-4 concise bullet points (each starting with \"- \"). No intro "
