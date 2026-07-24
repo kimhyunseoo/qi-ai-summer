@@ -189,10 +189,10 @@
 </div>
 
 <script>
-// 로컬(localhost)이면 로컬 백엔드, 배포 환경이면 Render 백엔드 URL 사용
+// 로컬(localhost)이면 로컬 백엔드, 배포 환경이면 Cloud Run 백엔드 URL 사용
 const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
   ? 'http://127.0.0.1:8001'
-  : 'https://solarix-backend.onrender.com';
+  : 'https://solarix-backend-406789890946.us-central1.run.app';
 
 function doLogin() {
   document.getElementById('loginScreen').style.display = 'none';
