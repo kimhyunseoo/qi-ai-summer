@@ -3,12 +3,14 @@ from __future__ import annotations
 import datetime as dt
 from pathlib import Path
 
+import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from app_mlr.feature_engineering import TARGET_SLOTS, InsufficientHistoryError, build_feature_rows, load_history
 from app_mlr.llm_guide import generate_usage_guide
 from app_mlr.mock_model import predict
+from app_mlr import mock_model
 from app_mlr.schemas import ForecastResponse, HealthResponse, SlotForecast
 
 MODEL_NAME = "Dacon-RF-v1 (7-day lag / 30-min)"
@@ -28,7 +30,8 @@ app.add_middleware(
 
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(status="ok", model_loaded=True, model_name=MODEL_NAME)
+    source = "vertex_endpoint" if mock_model._endpoint is not None else "local_model"
+    return HealthResponse(status="ok", model_loaded=True, model_name=f"{MODEL_NAME} ({source})")
 
 
 def _predict_day(history, target_date: dt.date) -> list[float]:
@@ -50,12 +53,15 @@ def forecast(date: str | None = Query(None, description="YYYY-MM-DD, demo/test�
 
     total = round(sum(values) * 0.5, 1)  # 30-min slots -> kWh = sum(kW) * 0.5h
 
-    # vs 전날 (같은 모델로 어제도 예측해서 비교; 어제치 history가 없으면 비교 생략)
+    # vs 전날 (전날 실제 발전량과 비교; 전날 실측 history가 없으면 비교 생략)
     try:
-        yesterday_values = _predict_day(history, target_date - dt.timedelta(days=1))
-        yesterday_total = sum(yesterday_values) * 0.5
+        yesterday_date = target_date - dt.timedelta(days=1)
+        yesterday_rows = history[
+            (history["date"] == pd.Timestamp(yesterday_date)) & history["Hour"].between(5, 19)
+        ]
+        yesterday_total = yesterday_rows["TARGET"].sum() * 0.5
         vs_avg_pct = round((total - yesterday_total) / yesterday_total * 100, 1) if yesterday_total > 0 else 0.0
-    except InsufficientHistoryError:
+    except Exception:
         vs_avg_pct = 0.0
 
     peak_idx = max(range(len(values)), key=lambda i: values[i])
